@@ -6,6 +6,7 @@ from tileclipper import TileClipper
 import copy
 import base64
 import shutil
+import os
 
 # bbox = [xmin, ymin, xmax, ymax]
 output_folder = "./output"
@@ -27,7 +28,10 @@ def main():
     m = folium.Map(location=[0, 0], zoom_start=2)
     st.sidebar.header("Draw Polygon and Get Tile Clipped for Bounding Box")
     tile_url = st.sidebar.text_input('Enter Tile URl', 'https://tiles.openaerialmap.org/62d85d11d8499800053796c1/0/62d85d11d8499800053796c2/{z}/{x}/{y}')
-
+    values = st.sidebar.slider(
+    'Select a range of zoom values',
+    1, 20, (18, 20))
+    st.write('Zoom Levels:', values)
     drawn_features = m.add_child(folium.plugins.Draw(export=True,
         draw_options={"polygon": True,"polyline": False,"circle":False,"marker":False,"circlemarker":False},))
     tilelayer = folium.raster_layers.TileLayer(tiles=tile_url, attr="<a href=https://endless-sky.github.io/>Endless Sky</a>")
@@ -57,8 +61,10 @@ def main():
     def tile_download_click():
         print("bbox",bbox)
         try:
+            if os.path.exists(output_folder):
+                shutil.rmtree(output_folder)
             tileclipper = TileClipper(tile_url, bbox, output_folder, max_workers)
-            tileclipper.download_tiles(18, 20)
+            tileclipper.download_tiles(values[0], values[1])
         except Exception as e:
             st.sidebar.error(f"Error: {e}")
         st.sidebar.success("Tiles Generated Successfully")
@@ -67,7 +73,7 @@ def main():
         except Exception as e:
             st.sidebar.error(f"Error: {e}")
         
-    st.sidebar.button("Generate Tiles", type="secondary",on_click=(tile_download_click))
+    st.sidebar.button("Generate Tiles", type="secondary",disabled=not st_data["last_active_drawing"], on_click=(tile_download_click))
 
 
     if st_data:
